@@ -191,18 +191,22 @@
 
             var legend = L.control({position: 'bottomleft'});
             legend.onAdd = function (map) {
-                var div = L.DomUtil.create('div', 'info legend');
-                var grades = [40, 30, 25, 20, 15, 10, 0];
-                var labels = [];
+    var div = L.DomUtil.create('div', 'info legend');
+    var grades = [0, 10, 15, 20, 25, 30, 40];
+    var labels = [];
 
-                div.innerHTML += '<h4>Drug Crime Rate per 10000</h4>';
-                for (var i = 0; i < grades.length; i++) {
-                    div.innerHTML +=
-                        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-                        grades[i] + (grades[i + 1] ? '  -  ' + grades[i + 1] + '<br>' : '+');
-                }
-                return div;
-            };
+    div.innerHTML += '<h4>Drug Crime Rate per 10000</h4>';
+    for (var i = 0; i < grades.length - 1; i++) {
+        div.innerHTML +=
+            '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+            grades[i] + ' - ' + grades[i + 1] + '<br>';
+    }
+    div.innerHTML +=
+        '<i style="background:' + getColor(grades[grades.length - 1] + 1) + '"></i> ' +
+        grades[grades.length - 1] + '+';
+
+    return div;
+};
             legend.addTo(map);
 
             slider.dispatchEvent(new Event('input'));
