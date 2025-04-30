@@ -190,9 +190,9 @@
             });
 
             var legend = L.control({position: 'bottomleft'});
-            legend.onAdd = function (map) {
+           legend.onAdd = function (map) {
     var div = L.DomUtil.create('div', 'info legend');
-    var grades = [0, 10, 15, 20, 25, 30, 40];
+    var grades = [0, 10, 15, 20, 25, 30]; // Removed 40
     var labels = [];
 
     div.innerHTML += '<h4>Drug Crime Rate per 10000</h4>';
@@ -201,6 +201,8 @@
             '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
             grades[i] + ' - ' + grades[i + 1] + '<br>';
     }
+    return div; // No need for a final "+ range"
+};
     div.innerHTML +=
         '<i style="background:' + getColor(grades[grades.length - 1] + 1) + '"></i> ' +
         grades[grades.length - 1] + '+';
