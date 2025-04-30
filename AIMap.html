@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Map with Time Slider and Local GeoJSON</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 850px;
+            width: 100%;
+        }
+        #slider-container {
+            position: absolute;
+            bottom: 80px;
+            left: 60%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+        }
+        #time-slider {
+            width: 300px;
+            margin: 0 10px;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .play-stop-button {
+            margin: 5px 0;
+        }
+        .step-button {
+            margin: 5px 0;
+        }
+        .info.legend {
+            position: absolute;
+            bottom: 60px;
+            left: 50px;
+            z-index: 1000;
+            width: 200px; /* Doubled the width */
+			height: 250px;
+            background: white;
+            padding: 20px;
+            font-size: 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .info.legend i {
+            width: 50px;
+            height: 20px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+        h1 {
+            text-align: center; /* Center the title */
+        }
+    </style>
+</head>
+<body>
+    <h1>The Drug Crime Rates of the Different Police Districts 2014 to 2024</h1>
+    <div id="map"></div>
+    <div id="slider-container">
+        <div class="button-container">
+            <button id="play-button" class="play-stop-button">Play</button>
+            <button id="stop-button" class="play-stop-button">Stop</button>
+            <button id="step-button" class="step-button">Step</button> <!-- Added Step button -->
+        </div>
+        <input id="time-slider" type="range" min="0" max="11" value="0" step="1" />
+        <span id="slider-label">2014</span>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var map = L.map('map').setView([-41.2865, 174.7762], 6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            var years = [
+                "2014", "2015", "2016", "2017", "2018", "2019",
+                "2020", "2021", "2022", "2023", "2024"
+            ];
+            var geojsonFiles = years.map(year => `normalized_crime_${year}_lat_lon.geojson`);
+
+            var slider = document.getElementById('time-slider');
+            var sliderLabel = document.getElementById('slider-label');
+            var playButton = document.getElementById('play-button');
+            var stopButton = document.getElementById('stop-button');
+            var stepButton = document.getElementById('step-button'); // Reference Step button
+            var currentLayer;
+            var intervalId;
+
+            function getColor(value) {
+                return value > 40 ? '#800026' :
+                       value > 30 ? '#BD0026' :
+                       value > 25 ? '#E31A1C' :
+                       value > 20 ? '#FC4E2A' :
+                       value > 15 ? '#FD8D3C' :
+                       value > 10 ? '#FEB24C' :
+                                    '#FFEDA0';
+            }
+
+            function style(feature) {
+                return {
+                    fillColor: getColor(feature.properties.normalized_crime_rate),
+                    weight: 2,
+                    opacity: 1,
+                    color: 'white',
+                    dashArray: '3',
+                    fillOpacity: 0.7
+                };
+            }
+
+            function loadGeoJSON(fileName) {
+                fetch(fileName)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("Error loading file: " + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (currentLayer) {
+                            map.removeLayer(currentLayer);
+                        }
+                        currentLayer = L.geoJSON(data, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.bindPopup('Crime Rate: ' + feature.properties.normalized_crime_rate);
+                            }
+                        }).addTo(map);
+                    })
+                    .catch(error => console.error("Error loading GeoJSON:", error));
+            }
+
+            slider.addEventListener('input', function () {
+                var index = parseInt(slider.value);
+                sliderLabel.textContent = years[index];
+                loadGeoJSON(geojsonFiles[index]);
+            });
+
+            playButton.addEventListener('click', function () {
+                var max = parseInt(slider.max);
+                var currentValue = parseInt(slider.value);
+
+                intervalId = setInterval(function () {
+                    currentValue++;
+                    if (currentValue > max) {
+                        currentValue = 0;
+                    }
+                    slider.value = currentValue;
+                    slider.dispatchEvent(new Event('input'));
+                }, 1000);
+            });
+
+            stopButton.addEventListener('click', function () {
+                clearInterval(intervalId);
+            });
+
+            stepButton.addEventListener('click', function () { // Step button functionality
+                var currentValue = parseInt(slider.value);
+                currentValue = (currentValue + 1) % (parseInt(slider.max) + 1);
+                slider.value = currentValue;
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            var legend = L.control({position: 'bottomleft'});
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'info legend');
+                var grades = [40, 30, 25, 20, 15, 10, 0];
+                var labels = [];
+
+                div.innerHTML += '<h4>Drug Crime Rate per 10000</h4>';
+                for (var i = 0; i < grades.length; i++) {
+                    div.innerHTML +=
+                        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                        grades[i] + (grades[i + 1] ? '  -  ' + grades[i + 1] + '<br>' : '+');
+                }
+                return div;
+            };
+            legend.addTo(map);
+
+            slider.dispatchEvent(new Event('input'));
+        });
+    </script>
+</body>
+</html>
