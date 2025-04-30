@@ -12,37 +12,45 @@
         #slider-container {
             position: absolute;
             bottom: 80px;
-            left: 60%;
+            left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
             background: white;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             display: flex;
+            flex-direction: column;
             align-items: center;
         }
         #time-slider {
             width: 300px;
-            margin: 0 10px;
+            margin-bottom: 10px;
         }
         .button-container {
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
         }
-        .play-stop-button {
-            margin: 5px 0;
+        .control-button {
+            padding: 5px 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
         }
-        .step-button {
-            margin: 5px 0;
+        .control-button:hover {
+            background-color: #0056b3;
         }
         .info.legend {
             position: absolute;
             bottom: 60px;
             left: 50px;
             z-index: 1000;
-            width: 200px; /* Doubled the width */
-			height: 250px;
+            width: 200px;
+            height: 250px;
             background: white;
             padding: 20px;
             font-size: 15px;
@@ -57,7 +65,7 @@
             opacity: 0.7;
         }
         h1 {
-            text-align: center; /* Center the title */
+            text-align: center;
         }
     </style>
 </head>
@@ -65,13 +73,13 @@
     <h1>The Drug Crime Rates of the Different Police Districts 2014 to 2024</h1>
     <div id="map"></div>
     <div id="slider-container">
-        <div class="button-container">
-            <button id="play-button" class="play-stop-button">Play</button>
-            <button id="stop-button" class="play-stop-button">Stop</button>
-            <button id="step-button" class="step-button">Step</button> <!-- Added Step button -->
-        </div>
         <input id="time-slider" type="range" min="0" max="11" value="0" step="1" />
         <span id="slider-label">2014</span>
+        <div class="button-container">
+            <button id="back-button" class="control-button">&lt;</button>
+            <button id="play-pause-button" class="control-button">Play</button>
+            <button id="forward-button" class="control-button">&gt;</button>
+        </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -90,11 +98,12 @@
 
             var slider = document.getElementById('time-slider');
             var sliderLabel = document.getElementById('slider-label');
-            var playButton = document.getElementById('play-button');
-            var stopButton = document.getElementById('stop-button');
-            var stepButton = document.getElementById('step-button'); // Reference Step button
+            var backButton = document.getElementById('back-button');
+            var playPauseButton = document.getElementById('play-pause-button');
+            var forwardButton = document.getElementById('forward-button');
             var currentLayer;
             var intervalId;
+            var isPlaying = false;
 
             function getColor(value) {
                 return value > 40 ? '#800026' :
@@ -145,29 +154,39 @@
                 loadGeoJSON(geojsonFiles[index]);
             });
 
-            playButton.addEventListener('click', function () {
-                var max = parseInt(slider.max);
+            backButton.addEventListener('click', function () {
                 var currentValue = parseInt(slider.value);
-
-                intervalId = setInterval(function () {
-                    currentValue++;
-                    if (currentValue > max) {
-                        currentValue = 0;
-                    }
-                    slider.value = currentValue;
-                    slider.dispatchEvent(new Event('input'));
-                }, 1000);
+                currentValue = currentValue > 0 ? currentValue - 1 : parseInt(slider.max);
+                slider.value = currentValue;
+                slider.dispatchEvent(new Event('input'));
             });
 
-            stopButton.addEventListener('click', function () {
-                clearInterval(intervalId);
-            });
-
-            stepButton.addEventListener('click', function () { // Step button functionality
+            forwardButton.addEventListener('click', function () {
                 var currentValue = parseInt(slider.value);
                 currentValue = (currentValue + 1) % (parseInt(slider.max) + 1);
                 slider.value = currentValue;
                 slider.dispatchEvent(new Event('input'));
+            });
+
+            playPauseButton.addEventListener('click', function () {
+                if (isPlaying) {
+                    clearInterval(intervalId);
+                    playPauseButton.textContent = 'Play';
+                } else {
+                    var max = parseInt(slider.max);
+                    var currentValue = parseInt(slider.value);
+
+                    intervalId = setInterval(function () {
+                        currentValue++;
+                        if (currentValue > max) {
+                            currentValue = 0;
+                        }
+                        slider.value = currentValue;
+                        slider.dispatchEvent(new Event('input'));
+                    }, 1000);
+                    playPauseButton.textContent = 'Pause';
+                }
+                isPlaying = !isPlaying;
             });
 
             var legend = L.control({position: 'bottomleft'});
