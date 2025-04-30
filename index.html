@@ -192,7 +192,7 @@
             var legend = L.control({position: 'bottomleft'});
             legend.onAdd = function (map) {
                 var div = L.DomUtil.create('div', 'info legend');
-                var grades = [0, 10, 15, 20, 25, 30, 40]; // Updated grades
+                var grades = [40, 30, 25, 20, 15, 10, 0]; // Updated grades
                 var labels = [];
 
                 div.innerHTML += '<h4>Drug Crime Rate per 10000</h4>';
